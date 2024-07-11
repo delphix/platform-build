@@ -112,6 +112,13 @@ configure)
 		update-initramfs -u -t -k "$(uname -r)"
 	fi
 
+  #
+  # For taking care of the unresolved and unidentified
+  # dependencies on old home mount path we are creating
+  # a soft link
+  #
+  [[ -d /export/home ]] || sudo ln -s /home /export/home
+
 	;;
 esac
 
