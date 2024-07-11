@@ -112,6 +112,27 @@ configure)
 		update-initramfs -u -t -k "$(uname -r)"
 	fi
 
+	if mount | grep -q "/export/home"; then
+		umount /export/home
+	fi
+
+	#
+	# For taking care of the unresolved and unidentified
+	# dependencies on old home mount path we are creating
+	# a soft link
+	#
+	if [[ -d /home ]]; then
+		if [[ ! -d /export ]]; then
+			mkdir /export
+			ln -s /home /export/home
+		elif [[ -d /export ]] && [[ ! -d /export/home ]]; then
+			ln -s home /export/home
+		elif [[ -d /export/home ]]; then
+			rm -rf /export/home
+			ln -s /home /export/home
+		fi
+	fi
+
 	;;
 esac
 
