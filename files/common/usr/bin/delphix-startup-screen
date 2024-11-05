@@ -126,12 +126,21 @@ def load_header(stdscr) -> Any:
     Display the header information for the main screen.
     """
     WIN_LEN, WIN_HT = set_common_variables(stdscr)
-    cmd = ['get-appliance-version', '--patch']
-    cp = subprocess.run(cmd,
+
+    cp = subprocess.run('get-packaged-app-version',
                         stdout=subprocess.PIPE,
                         universal_newlines=True,
                         check=True)
-    version: str = cp.stdout
+    version = cp.stdout
+    if not version:
+        # Use the packaged app version when available
+        # fallback to the appliance version
+        cmd = ['get-appliance-version', '--patch']
+        cp = subprocess.run(cmd,
+                            stdout=subprocess.PIPE,
+                            universal_newlines=True,
+                            check=True)
+        version: str = cp.stdout
 
     stdscr.clear()
     stdscr.addstr(1, 2, LOGO + str(version), curses.A_BOLD)
@@ -219,9 +228,11 @@ def get_network_status() -> Tuple[str, str]:
 
     ipaddrs = []
     for interface in interfaces():
-        if interface == "lo":
+        if (interface == "lo" or
+            interface == "docker0" or
+            interface.startswith("br-")):
             continue
-        for link in ifaddresses(interface)[AF_INET]:
+        for link in ifaddresses(interface).get(AF_INET, []):
             ipaddrs.append(link['addr'])
     hostname = os.uname()[1]
     return (hostname, ", ".join(ipaddrs))
@@ -292,8 +303,12 @@ def display_status(stdscr, win):
         statuswin.hline(START, 5, curses.ACS_HLINE, 45)
         for i in strout.split("\n"):
             START += 1
-            statuswin.addstr(START, 2, " " * (width - 3), curses.A_BOLD)
-            statuswin.addstr(START, 5, str(i), curses.A_STANDOUT)
+            try:
+                statuswin.addstr(START, 2, " " * (width - 3), curses.A_BOLD)
+                statuswin.addstr(START, 5, str(i), curses.A_STANDOUT)
+            except curses.error as e:
+                # Probably exceeded available space
+                logging.info(e)
         statuswin.noutrefresh()
 
         curses.doupdate()
