@@ -85,6 +85,7 @@ DEPENDS += ansible, \
 	   rsyslog, \
 	   sudo, \
 	   systemd-container, \
+	   systemd-resolved, \
 	   tzdata, \
 	   udev,
 
